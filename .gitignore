@@ -1,0 +1,6 @@
+target/
+.idea/
+*.iml
+.vscode/
+.gigaide/
+konspekt_full.*
