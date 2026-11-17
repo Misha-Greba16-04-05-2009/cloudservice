@@ -209,5 +209,7 @@ curl -X POST http://localhost:8080/logout -H 'auth-token: Bearer <TOKEN>'
    npm install
    npm run serve
    ```
+   На Node.js 20 и новее `npm install` падает на сборке `node-sass`: этот пакет поддерживает Node только до 19-й версии.
+   Решение — заменить в `package.json` фронта `"node-sass": "^8.0.0"` на `"sass": "^1.69.0"`. Это только dev-зависимость, код фронта не меняется.
 4. Фронт откроется на `http://localhost:8081`. Этот адрес уже разрешён в CORS (`app.cors.allowed-origins`).
 5. Войдите под `user@example.com` / `password`.
