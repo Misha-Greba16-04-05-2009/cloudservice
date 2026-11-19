@@ -1,6 +1,7 @@
-package ru.netology.cloud.auth;
+package ru.netology.cloud.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import ru.netology.cloud.entity.User;
 
 import java.util.Optional;
 

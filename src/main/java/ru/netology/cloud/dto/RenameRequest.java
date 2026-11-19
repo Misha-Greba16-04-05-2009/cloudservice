@@ -1,4 +1,4 @@
-package ru.netology.cloud.file;
+package ru.netology.cloud.dto;
 
 /**
  * Тело PUT /file. По спецификации поле называется "name",

@@ -31,10 +31,32 @@ BCrypt (`spring-security-crypto`), JUnit 5, Mockito, Testcontainers, Docker Comp
 
 | Пакет | Что внутри |
 |-------|------------|
-| `auth` | `AuthController` (`/login`, `/logout`), `AuthService` (проверка пароля BCrypt, выдача и отзыв токенов), `AuthInterceptor` (проверка `auth-token`), сущности `User`, `AuthToken` |
-| `file` | `FileController` (`/file`, `/list`), `FileService` (бизнес-правила), `FileRepository`, сущность `StoredFile` |
-| `error` | `GlobalExceptionHandler` и исключения `BadRequestException` (400), `UnauthorizedException` (401) |
-| `config` | `WebConfig`: CORS, регистрация интерсептора, бин `BCryptPasswordEncoder` |
+| `controller` | `AuthController` (`/login`, `/logout`), `FileController` (`/file`, `/list`): разбор HTTP-запроса и формирование ответа |
+| `service` | `AuthService` (проверка пароля BCrypt, выдача и отзыв токенов), `FileService` (бизнес-правила работы с файлами). Сервисы не зависят от HTTP: принимают готовые значения и байты |
+| `repository` | `UserRepository`, `AuthTokenRepository`, `FileRepository` (Spring Data JPA) |
+| `entity` | JPA-сущности `User`, `AuthToken`, `StoredFile` |
+| `dto` | `LoginRequest`, `LoginResponse`, `RenameRequest`, `FileInfo`, `ErrorResponse` |
+| `exception` | бизнес-исключения и `GlobalExceptionHandler`, который переводит их в HTTP-коды |
+| `config` | `WebConfig` (CORS, регистрация интерсептора, бин `BCryptPasswordEncoder`), `AuthInterceptor` (проверка `auth-token`) |
+
+Бизнес-исключения и коды ответа:
+
+| Исключение | Когда | Код |
+|------------|-------|-----|
+| `InvalidCredentialsException` | неверный логин или пароль | 400 |
+| `InvalidFileDataException` | пустой файл, недопустимое имя, неверный `limit` | 400 |
+| `FileNotFoundInStorageException` | у пользователя нет такого файла | 400 |
+| `DuplicateFileException` | файл с таким именем уже есть | 400 |
+| `InvalidTokenException` | токена нет, он неизвестен или отозван | 401 |
+| любое другое | непредвиденная ошибка | 500 |
+
+Логирование (SLF4J + Logback):
+- **INFO** — вход, выход, загрузка, скачивание, переименование, удаление файла;
+- **WARN** — неудачная попытка входа и ответы 4xx;
+- **ERROR** — непредвиденные ошибки 500, со стектрейсом и `id` из тела ответа;
+- **DEBUG** — запросы без токена или с отозванным токеном, просмотр списка.
+
+Пароли и токены в лог не пишутся. Логи выводятся в консоль и в файл `logs/cloud-storage.log`.
 
 Авторизация:
 
@@ -127,6 +149,8 @@ BCrypt (`spring-security-crypto`), JUnit 5, Mockito, Testcontainers, Docker Comp
 | `DB_USERNAME` / `DB_PASSWORD` | `cloud` / `cloud` | учётка БД |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:8081` | откуда разрешены запросы (через запятую) |
 | `MAX_FILE_SIZE` / `MAX_REQUEST_SIZE` | `50MB` | лимит загрузки |
+| `LOG_LEVEL` | `INFO` | уровень логов приложения (`DEBUG` — подробнее) |
+| `LOG_FILE` | `logs/cloud-storage.log` | файл логов |
 
 Тестовый пользователь (создаётся миграцией `V2`): логин **`user@example.com`**, пароль **`password`**.
 

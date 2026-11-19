@@ -1,9 +1,11 @@
-package ru.netology.cloud.file;
+package ru.netology.cloud.repository;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import ru.netology.cloud.dto.FileInfo;
+import ru.netology.cloud.entity.StoredFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -15,7 +17,7 @@ public interface FileRepository extends JpaRepository<StoredFile, Long> {
     Optional<StoredFile> findByUserIdAndFilename(Long userId, String filename);
 
     /** Только имя и размер, без чтения содержимого. */
-    @Query("select new ru.netology.cloud.file.FileInfo(f.filename, f.size) "
+    @Query("select new ru.netology.cloud.dto.FileInfo(f.filename, f.size) "
             + "from StoredFile f where f.userId = :userId order by f.filename")
     List<FileInfo> findInfoByUserId(Long userId, Pageable pageable);
 

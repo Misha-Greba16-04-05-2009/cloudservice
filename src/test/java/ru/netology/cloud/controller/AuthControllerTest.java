@@ -1,4 +1,4 @@
-package ru.netology.cloud.auth;
+package ru.netology.cloud.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -6,7 +6,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.netology.cloud.error.BadRequestException;
+import ru.netology.cloud.exception.InvalidCredentialsException;
+import ru.netology.cloud.service.AuthService;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -37,7 +38,7 @@ class AuthControllerTest {
 
     @Test
     void loginWithBadCredentialsReturns400WithError() throws Exception {
-        when(authService.login("user@example.com", "bad")).thenThrow(new BadRequestException("Bad credentials"));
+        when(authService.login("user@example.com", "bad")).thenThrow(new InvalidCredentialsException());
 
         mvc.perform(post("/login").contentType(MediaType.APPLICATION_JSON)
                         .content("{\"login\":\"user@example.com\",\"password\":\"bad\"}"))

@@ -8,7 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import ru.netology.cloud.auth.AuthInterceptor;
+import ru.netology.cloud.service.AuthService;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {

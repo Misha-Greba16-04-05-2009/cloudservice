@@ -4,3 +4,4 @@ target/
 .vscode/
 .gigaide/
 konspekt_full.*
+logs/

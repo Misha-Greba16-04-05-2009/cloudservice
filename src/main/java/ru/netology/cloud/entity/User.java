@@ -1,4 +1,4 @@
-package ru.netology.cloud.auth;
+package ru.netology.cloud.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

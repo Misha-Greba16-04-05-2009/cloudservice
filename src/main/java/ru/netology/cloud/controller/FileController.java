@@ -1,4 +1,4 @@
-package ru.netology.cloud.file;
+package ru.netology.cloud.controller;
 
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -14,8 +14,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import ru.netology.cloud.auth.AuthInterceptor;
+import ru.netology.cloud.config.AuthInterceptor;
+import ru.netology.cloud.dto.FileInfo;
+import ru.netology.cloud.dto.RenameRequest;
+import ru.netology.cloud.entity.StoredFile;
+import ru.netology.cloud.service.FileService;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -33,8 +38,9 @@ public class FileController {
     public ResponseEntity<Void> upload(@RequestAttribute(AuthInterceptor.USER_ID_ATTR) Long userId,
                                        @RequestParam(required = false) String filename,
                                        @RequestPart("file") MultipartFile file,
-                                       @RequestParam(required = false) String hash) {
-        fileService.upload(userId, filename, file, hash);
+                                       @RequestParam(required = false) String hash) throws IOException {
+        String name = filename != null ? filename : file.getOriginalFilename();
+        fileService.upload(userId, name, file.getBytes(), hash);
         return ResponseEntity.ok().build();
     }
 

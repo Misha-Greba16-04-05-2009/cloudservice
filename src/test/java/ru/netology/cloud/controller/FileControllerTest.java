@@ -1,4 +1,4 @@
-package ru.netology.cloud.file;
+package ru.netology.cloud.controller;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,9 +8,12 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import ru.netology.cloud.auth.AuthService;
-import ru.netology.cloud.error.BadRequestException;
-import ru.netology.cloud.error.UnauthorizedException;
+import ru.netology.cloud.dto.FileInfo;
+import ru.netology.cloud.entity.StoredFile;
+import ru.netology.cloud.exception.FileNotFoundInStorageException;
+import ru.netology.cloud.exception.InvalidTokenException;
+import ru.netology.cloud.service.AuthService;
+import ru.netology.cloud.service.FileService;
 
 import java.time.Instant;
 import java.util.List;
@@ -62,6 +65,16 @@ class FileControllerTest {
     }
 
     @Test
+    void uploadWithoutFilenameUsesOriginalName() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "orig.txt", "text/plain", "hello".getBytes());
+
+        mvc.perform(multipart("/file").file(file).header("auth-token", TOKEN))
+                .andExpect(status().isOk());
+
+        verify(fileService).upload(USER_ID, "orig.txt", "hello".getBytes(), null);
+    }
+
+    @Test
     void uploadWithoutFilePartReturns400() throws Exception {
         mvc.perform(multipart("/file").param("filename", "a.txt").header("auth-token", TOKEN))
                 .andExpect(status().isBadRequest())
@@ -70,7 +83,7 @@ class FileControllerTest {
 
     @Test
     void requestWithoutTokenReturns401() throws Exception {
-        when(authService.authenticate(isNull())).thenThrow(new UnauthorizedException("Unauthorized error"));
+        when(authService.authenticate(isNull())).thenThrow(new InvalidTokenException());
 
         mvc.perform(get("/list").param("limit", "3"))
                 .andExpect(status().isUnauthorized())
@@ -120,11 +133,11 @@ class FileControllerTest {
 
     @Test
     void deleteMissingFileReturns400() throws Exception {
-        doThrow(new BadRequestException("File not found")).when(fileService).delete(USER_ID, "x.txt");
+        doThrow(new FileNotFoundInStorageException("x.txt")).when(fileService).delete(USER_ID, "x.txt");
 
         mvc.perform(delete("/file").param("filename", "x.txt").header("auth-token", TOKEN))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("File not found"));
+                .andExpect(jsonPath("$.message").value("File not found: x.txt"));
     }
 
     @Test

@@ -19,9 +19,9 @@ import org.springframework.util.MultiValueMap;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import ru.netology.cloud.auth.User;
-import ru.netology.cloud.auth.UserRepository;
-import ru.netology.cloud.file.FileInfo;
+import ru.netology.cloud.dto.FileInfo;
+import ru.netology.cloud.entity.User;
+import ru.netology.cloud.repository.UserRepository;
 
 import java.util.List;
 import java.util.Map;

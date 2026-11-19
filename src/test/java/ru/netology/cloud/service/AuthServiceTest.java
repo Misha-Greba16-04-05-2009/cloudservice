@@ -1,4 +1,4 @@
-package ru.netology.cloud.auth;
+package ru.netology.cloud.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,8 +7,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import ru.netology.cloud.error.BadRequestException;
-import ru.netology.cloud.error.UnauthorizedException;
+import ru.netology.cloud.entity.AuthToken;
+import ru.netology.cloud.entity.User;
+import ru.netology.cloud.exception.InvalidCredentialsException;
+import ru.netology.cloud.exception.InvalidTokenException;
+import ru.netology.cloud.repository.AuthTokenRepository;
+import ru.netology.cloud.repository.UserRepository;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -55,7 +59,7 @@ class AuthServiceTest {
         when(passwordEncoder.matches("wrong", "hash")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.login("user@example.com", "wrong"))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(InvalidCredentialsException.class);
         verify(tokens, never()).save(any());
     }
 
@@ -64,7 +68,7 @@ class AuthServiceTest {
         when(users.findByLogin("nobody")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.login("nobody", "password"))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(InvalidCredentialsException.class);
     }
 
     @Test
@@ -80,26 +84,38 @@ class AuthServiceTest {
         when(tokens.findById("abc")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> authService.authenticate("Bearer abc"))
-                .isInstanceOf(UnauthorizedException.class);
+                .isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
     void authenticateWithoutHeaderThrowsUnauthorized() {
-        assertThatThrownBy(() -> authService.authenticate(null)).isInstanceOf(UnauthorizedException.class);
-        assertThatThrownBy(() -> authService.authenticate("Bearer ")).isInstanceOf(UnauthorizedException.class);
+        assertThatThrownBy(() -> authService.authenticate(null)).isInstanceOf(InvalidTokenException.class);
+        assertThatThrownBy(() -> authService.authenticate("Bearer ")).isInstanceOf(InvalidTokenException.class);
     }
 
     @Test
     void logoutDeletesToken() {
+        AuthToken token = new AuthToken("abc", 1L, Instant.now());
+        when(tokens.findById("abc")).thenReturn(Optional.of(token));
+
         authService.logout("Bearer abc");
 
-        verify(tokens).deleteById("abc");
+        verify(tokens).delete(token);
+    }
+
+    @Test
+    void logoutWithUnknownTokenDoesNothing() {
+        when(tokens.findById("abc")).thenReturn(Optional.empty());
+
+        authService.logout("Bearer abc");
+
+        verify(tokens, never()).delete(any());
     }
 
     @Test
     void logoutWithoutHeaderDoesNothing() {
         authService.logout(null);
 
-        verify(tokens, never()).deleteById(any());
+        verify(tokens, never()).findById(any());
     }
 }

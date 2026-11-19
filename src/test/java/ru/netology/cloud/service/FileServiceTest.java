@@ -1,4 +1,4 @@
-package ru.netology.cloud.file;
+package ru.netology.cloud.service;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -7,8 +7,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
-import org.springframework.mock.web.MockMultipartFile;
-import ru.netology.cloud.error.BadRequestException;
+import ru.netology.cloud.dto.FileInfo;
+import ru.netology.cloud.entity.StoredFile;
+import ru.netology.cloud.exception.DuplicateFileException;
+import ru.netology.cloud.exception.FileNotFoundInStorageException;
+import ru.netology.cloud.exception.InvalidFileDataException;
+import ru.netology.cloud.repository.FileRepository;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,8 +37,7 @@ class FileServiceTest {
     @InjectMocks
     private FileService fileService;
 
-    private final MockMultipartFile file =
-            new MockMultipartFile("file", "a.txt", "text/plain", "hello".getBytes());
+    private final byte[] file = "hello".getBytes();
 
     @Test
     void uploadSavesFileWithSizeAndComputedHash() {
@@ -60,43 +63,35 @@ class FileServiceTest {
     }
 
     @Test
-    void uploadUsesOriginalNameWhenFilenameMissing() {
-        fileService.upload(USER_ID, null, file, null);
-
-        ArgumentCaptor<StoredFile> saved = ArgumentCaptor.forClass(StoredFile.class);
-        verify(files).save(saved.capture());
-        assertThat(saved.getValue().getFilename()).isEqualTo("a.txt");
-    }
-
-    @Test
-    void uploadDuplicateThrowsBadRequest() {
+    void uploadDuplicateThrowsDuplicateFile() {
         when(files.existsByUserIdAndFilename(USER_ID, "a.txt")).thenReturn(true);
 
         assertThatThrownBy(() -> fileService.upload(USER_ID, "a.txt", file, null))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(DuplicateFileException.class);
         verify(files, never()).save(any());
     }
 
     @Test
-    void uploadEmptyFileThrowsBadRequest() {
-        MockMultipartFile empty = new MockMultipartFile("file", "a.txt", "text/plain", new byte[0]);
-
-        assertThatThrownBy(() -> fileService.upload(USER_ID, "a.txt", empty, null))
-                .isInstanceOf(BadRequestException.class);
+    void uploadEmptyFileThrowsInvalidData() {
+        assertThatThrownBy(() -> fileService.upload(USER_ID, "a.txt", new byte[0], null))
+                .isInstanceOf(InvalidFileDataException.class);
     }
 
     @Test
     void invalidFilenamesAreRejected() {
-        assertThatThrownBy(() -> fileService.delete(USER_ID, " ")).isInstanceOf(BadRequestException.class);
-        assertThatThrownBy(() -> fileService.delete(USER_ID, "../a.txt")).isInstanceOf(BadRequestException.class);
-        assertThatThrownBy(() -> fileService.delete(USER_ID, "x".repeat(256))).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> fileService.delete(USER_ID, " ")).isInstanceOf(InvalidFileDataException.class);
+        assertThatThrownBy(() -> fileService.delete(USER_ID, "../a.txt")).isInstanceOf(InvalidFileDataException.class);
+        assertThatThrownBy(() -> fileService.delete(USER_ID, "x".repeat(256)))
+                .isInstanceOf(InvalidFileDataException.class);
+        assertThatThrownBy(() -> fileService.upload(USER_ID, null, file, null))
+                .isInstanceOf(InvalidFileDataException.class);
     }
 
     @Test
-    void deleteMissingFileThrowsBadRequest() {
+    void deleteMissingFileThrowsNotFound() {
         when(files.deleteByUserIdAndFilename(USER_ID, "a.txt")).thenReturn(0);
 
-        assertThatThrownBy(() -> fileService.delete(USER_ID, "a.txt")).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> fileService.delete(USER_ID, "a.txt")).isInstanceOf(FileNotFoundInStorageException.class);
     }
 
     @Test
@@ -117,27 +112,27 @@ class FileServiceTest {
     }
 
     @Test
-    void downloadMissingFileThrowsBadRequest() {
+    void downloadMissingFileThrowsNotFound() {
         when(files.findByUserIdAndFilename(USER_ID, "a.txt")).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> fileService.download(USER_ID, "a.txt")).isInstanceOf(BadRequestException.class);
+        assertThatThrownBy(() -> fileService.download(USER_ID, "a.txt")).isInstanceOf(FileNotFoundInStorageException.class);
     }
 
     @Test
-    void renameToExistingNameThrowsBadRequest() {
+    void renameToExistingNameThrowsDuplicate() {
         when(files.existsByUserIdAndFilename(USER_ID, "b.txt")).thenReturn(true);
 
         assertThatThrownBy(() -> fileService.rename(USER_ID, "a.txt", "b.txt"))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(DuplicateFileException.class);
         verify(files, never()).rename(any(), anyString(), anyString());
     }
 
     @Test
-    void renameMissingFileThrowsBadRequest() {
+    void renameMissingFileThrowsNotFound() {
         when(files.rename(USER_ID, "a.txt", "b.txt")).thenReturn(0);
 
         assertThatThrownBy(() -> fileService.rename(USER_ID, "a.txt", "b.txt"))
-                .isInstanceOf(BadRequestException.class);
+                .isInstanceOf(FileNotFoundInStorageException.class);
     }
 
     @Test
@@ -165,7 +160,7 @@ class FileServiceTest {
     }
 
     @Test
-    void listWithNonPositiveLimitThrowsBadRequest() {
-        assertThatThrownBy(() -> fileService.list(USER_ID, 0)).isInstanceOf(BadRequestException.class);
+    void listWithNonPositiveLimitThrowsInvalidData() {
+        assertThatThrownBy(() -> fileService.list(USER_ID, 0)).isInstanceOf(InvalidFileDataException.class);
     }
 }
